@@ -1,0 +1,129 @@
+SYSTEM-INFO-MIB DEFINITIONS ::= BEGIN
+
+IMPORTS
+    OBJECT-TYPE, Integer32
+        FROM SNMPv2-SMI
+    DisplayString, OCTET-STRING
+        FROM SNMPv2-TC;
+
+-- Define the OID root for System Info MIB
+systemInfoMIB MODULE-IDENTITY
+    LAST-UPDATED "202405070000Z"
+    ORGANIZATION "My Company"
+    CONTACT-INFO "you@example.com"
+    DESCRIPTION "A custom MIB for system information"
+    ::= { enterprises 112233 }
+
+osName OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION "Operating System Name"
+    ::= { systemInfoMIB 4 }
+
+architecture OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION "System Architecture"
+    ::= { systemInfoMIB 5 }
+
+uptime OBJECT-TYPE
+    SYNTAX      Integer32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION "System Uptime in seconds"
+    ::= { systemInfoMIB 6 }
+
+macAddress OBJECT-TYPE
+    SYNTAX      OCTET STRING (SIZE (6))
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION "MAC Address of the first non-loopback network interface"
+    ::= { systemInfoMIB 7 }
+
+ipAddresses OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION "Comma-separated list of primary IP addresses (IPv4 and IPv6)"
+    ::= { systemInfoMIB 8 }
+
+memUsed OBJECT-TYPE
+    SYNTAX      Integer32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION "Memory Used in bytes"
+    ::= { systemInfoMIB 9 }
+
+memAvailable OBJECT-TYPE
+    SYNTAX      Integer32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION "Memory Available in bytes"
+    ::= { systemInfoMIB 10 }
+
+storageUsed OBJECT-TYPE
+    SYNTAX      Integer32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION "Root filesystem Storage Used in bytes"
+    ::= { systemInfoMIB 11 }
+
+storageAvailable OBJECT-TYPE
+    SYNTAX      Integer32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION "Root filesystem Storage Available in bytes"
+    ::= { systemInfoMIB 12 }
+
+timezone OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION "System Timezone"
+    ::= { systemInfoMIB 13 }
+
+temperature OBJECT-TYPE
+    SYNTAX      Integer32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION "CPU Temperature in Celsius (best effort)"
+    ::= { systemInfoMIB 14 }
+
+cpuUsage OBJECT-TYPE
+    SYNTAX      Integer32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION "Overall CPU Usage Percentage (instantaneous)"
+    ::= { systemInfoMIB 15 }
+
+processorSpeed OBJECT-TYPE
+    SYNTAX      Integer32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION "Processor Speed in MHz (average/nominal)"
+    ::= { systemInfoMIB 16 }
+
+osInfo OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION "Operating System Marketing Name/Pretty Info"
+    ::= { systemInfoMIB 17 }
+
+kernelVersion OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION "Kernel Version String"
+    ::= { systemInfoMIB 18 }
+
+location OBJECT-TYPE
+    SYNTAX      DisplayString
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION "System Location (configurable)"
+    ::= { systemInfoMIB 19 }
+
+END 

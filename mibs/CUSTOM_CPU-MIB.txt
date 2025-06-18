@@ -1,0 +1,26 @@
+CUSTOM_CPU-MIB DEFINITIONS ::= BEGIN
+
+IMPORTS
+    OBJECT-TYPE
+        FROM SNMPv2-SMI
+    Integer32
+        FROM SNMPv2-TC;
+
+-- Define the OID root for CPU MIB
+custom_cpuMIB MODULE-IDENTITY
+    LAST-UPDATED "202505060000Z"
+    ORGANIZATION "My Company"
+    CONTACT-INFO "you@example.com"
+    DESCRIPTION "A custom MIB for getting total number of CPUs"
+    ::= { 1 3 6 1 4 1 112233 }
+
+-- Define the OID for totalCPUs
+totalCPUs OBJECT-TYPE
+    SYNTAX      Integer32
+    MAX-ACCESS  read-only
+    STATUS      current
+    DESCRIPTION "The total number of CPUs available on the system"
+    ::= { custom_cpuMIB 2 }
+
+END
+
