@@ -72,23 +72,27 @@ char* get_ip_addresses(void) {
     char addr_str[NI_MAXHOST];
     char* ip_list = strdup("");
     size_t current_len = 0;
+    int family;
+    int s;
+    size_t addr_len, needed_len;
+    char* temp;
     if (getifaddrs(&ifaddr) == -1) {
         perror("getifaddrs");
         return strdup("Unknown IP Addresses");
     }
     for (ifa = ifaddr; ifa != NULL; ifa = ifa->ifa_next) {
         if (ifa->ifa_addr == NULL) continue;
-        int family = ifa->ifa_addr->sa_family;
+        family = ifa->ifa_addr->sa_family;
         if ((family == AF_INET || family == AF_INET6) && !(ifa->ifa_flags & IFF_LOOPBACK)) {
-            int s = getnameinfo(ifa->ifa_addr, (family == AF_INET) ? sizeof(struct sockaddr_in) : sizeof(struct sockaddr_in6),
+            s = getnameinfo(ifa->ifa_addr, (family == AF_INET) ? sizeof(struct sockaddr_in) : sizeof(struct sockaddr_in6),
                                 addr_str, NI_MAXHOST, NULL, 0, NI_NUMERICHOST);
             if (s != 0) {
                 fprintf(stderr, "getnameinfo() failed: %s\n", gai_strerror(s));
                 continue;
             }
-            size_t addr_len = strlen(addr_str);
-            size_t needed_len = current_len + addr_len + (current_len > 0 ? 1 : 0) + 1;
-            char* temp = realloc(ip_list, needed_len);
+            addr_len = strlen(addr_str);
+            needed_len = current_len + addr_len + (current_len > 0 ? 1 : 0) + 1;
+            temp = realloc(ip_list, needed_len);
             if (temp == NULL) {
                 perror("realloc");
                 free(ip_list);
@@ -141,10 +145,10 @@ int get_mem_used(void) {
 }
 int get_mem_available(void) {
     long available = 0;
+    long total = 0, free = 0, buffers = 0, cached = 0;
     if (get_mem_info("MemAvailable:", &available) == 0) {
         return (int)available;
     }
-    long total = 0, free = 0, buffers = 0, cached = 0;
      if (get_mem_info("MemTotal:", &total) == 0 &&
         get_mem_info("MemFree:", &free) == 0 &&
         get_mem_info("Buffers:", &buffers) == 0 &&
@@ -215,16 +219,21 @@ char* get_os_info(void) {
      FILE* f = fopen("/etc/os-release", "r");
     char line[256];
     char* pretty_name = NULL;
+    char* start;
+    char* end;
+    size_t len;
+    char fallback_info[512];
+    static struct utsname uts;
     if (!f) {
         perror("fopen /etc/os-release");
         return strdup("Unknown OS Info");
     }
     while (fgets(line, sizeof(line), f)) {
         if (strstr(line, "PRETTY_NAME=") == line) {
-            char* start = strchr(line, '\"');
-            char* end = strrchr(line, '\"');
+            start = strchr(line, '\"');
+            end = strrchr(line, '\"');
             if (start && end && start < end) {
-                size_t len = end - start - 1;
+                len = end - start - 1;
                 pretty_name = (char*) malloc(len + 1);
                 if (pretty_name) {
                     strncpy(pretty_name, start + 1, len);
@@ -238,12 +247,10 @@ char* get_os_info(void) {
     if (pretty_name) {
         return pretty_name;
     } else {
-         static struct utsname uts;
         if (uname(&uts) != 0) {
             perror("uname for fallback OS Info");
             return strdup("Unknown OS Info");
         }
-        char fallback_info[512];
         snprintf(fallback_info, sizeof(fallback_info), "%s %s (%s)", uts.sysname, uts.release, uts.machine);
         return strdup(fallback_info);
     }
@@ -263,15 +270,17 @@ int handle_system_info(netsnmp_mib_handler *handler,
                        netsnmp_handler_registration *reginfo,
                        netsnmp_agent_request_info *reqinfo,
                        netsnmp_request_info *requests) {
+    netsnmp_variable_list *var;
+    long value_long;
+    int value_int;
+    char* value_str;
+    u_char* value_bytes;
+    size_t value_len;
+    oid subid;
     switch (reqinfo->mode) {
         case MODE_GET: {
-            netsnmp_variable_list *var = requests->requestvb;
-            long value_long;
-            int value_int;
-            char* value_str;
-            u_char* value_bytes;
-            size_t value_len;
-            oid subid = var->name[OID_LENGTH(system_info_oid)];
+            var = requests->requestvb;
+            subid = var->name[OID_LENGTH(system_info_oid)];
             switch (subid) {
                 case 4:
                     value_str = get_os_name();
@@ -408,7 +417,7 @@ int handle_system_info(netsnmp_mib_handler *handler,
                          snmp_set_var_typed_value(var, ASN_OCTET_STR, (u_char*)value_str, strlen(value_str));
                          free(value_str);
                      } else {
-                          snmp_set_var_typed_value(var, ASN_OCTET_STR, (const u_char*)"Error", strlen("Error"));
+                         snmp_set_var_typed_value(var, ASN_OCTET_STR, (const u_char*)"Error", strlen("Error"));
                      }
                     break;
                 case 18:
@@ -441,69 +450,69 @@ int handle_system_info(netsnmp_mib_handler *handler,
     return SNMP_ERR_NOERROR;
 }
 void init_system_info(void) {
-    printf("Init SYSTEM_INFO\n");
     const oid osName_oid[] = { 1, 3, 6, 1, 4, 1, 112233, 4 };
+    const oid architecture_oid[] = { 1, 3, 6, 1, 4, 1, 112233, 5 };
+    const oid uptime_oid[] = { 1, 3, 6, 1, 4, 1, 112233, 6 };
+    const oid macAddress_oid[] = { 1, 3, 6, 1, 4, 1, 112233, 7 };
+    const oid ipAddresses_oid[] = { 1, 3, 6, 1, 4, 1, 112233, 8 };
+    const oid memUsed_oid[] = { 1, 3, 6, 1, 4, 1, 112233, 9 };
+    const oid memAvailable_oid[] = { 1, 3, 6, 1, 4, 1, 112233, 10 };
+    const oid storageUsed_oid[] = { 1, 3, 6, 1, 4, 1, 112233, 11 };
+    const oid storageAvailable_oid[] = { 1, 3, 6, 1, 4, 1, 112233, 12 };
+    const oid timezone_oid[] = { 1, 3, 6, 1, 4, 1, 112233, 13 };
+    const oid temperature_oid[] = { 1, 3, 6, 1, 4, 1, 112233, 14 };
+    const oid cpuUsage_oid[] = { 1, 3, 6, 1, 4, 1, 112233, 15 };
+    const oid processorSpeed_oid[] = { 1, 3, 6, 1, 4, 1, 112233, 16 };
+    const oid osInfo_oid[] = { 1, 3, 6, 1, 4, 1, 112233, 17 };
+    const oid kernelVersion_oid[] = { 1, 3, 6, 1, 4, 1, 112233, 18 };
+    const oid location_oid[] = { 1, 3, 6, 1, 4, 1, 112233, 19 };
+    printf("Init SYSTEM_INFO\n");
     netsnmp_register_scalar(
         netsnmp_create_handler_registration("osName", handle_system_info, osName_oid, OID_LENGTH(osName_oid), HANDLER_CAN_RONLY)
     );
-    const oid architecture_oid[] = { 1, 3, 6, 1, 4, 1, 112233, 5 };
     netsnmp_register_scalar(
         netsnmp_create_handler_registration("architecture", handle_system_info, architecture_oid, OID_LENGTH(architecture_oid), HANDLER_CAN_RONLY)
     );
-    const oid uptime_oid[] = { 1, 3, 6, 1, 4, 1, 112233, 6 };
     netsnmp_register_scalar(
         netsnmp_create_handler_registration("uptime", handle_system_info, uptime_oid, OID_LENGTH(uptime_oid), HANDLER_CAN_RONLY)
     );
-    const oid macAddress_oid[] = { 1, 3, 6, 1, 4, 1, 112233, 7 };
     netsnmp_register_scalar(
         netsnmp_create_handler_registration("macAddress", handle_system_info, macAddress_oid, OID_LENGTH(macAddress_oid), HANDLER_CAN_RONLY)
     );
-    const oid ipAddresses_oid[] = { 1, 3, 6, 1, 4, 1, 112233, 8 };
     netsnmp_register_scalar(
         netsnmp_create_handler_registration("ipAddresses", handle_system_info, ipAddresses_oid, OID_LENGTH(ipAddresses_oid), HANDLER_CAN_RONLY)
     );
-    const oid memUsed_oid[] = { 1, 3, 6, 1, 4, 1, 112233, 9 };
     netsnmp_register_scalar(
         netsnmp_create_handler_registration("memUsed", handle_system_info, memUsed_oid, OID_LENGTH(memUsed_oid), HANDLER_CAN_RONLY)
     );
-    const oid memAvailable_oid[] = { 1, 3, 6, 1, 4, 1, 112233, 10 };
     netsnmp_register_scalar(
         netsnmp_create_handler_registration("memAvailable", handle_system_info, memAvailable_oid, OID_LENGTH(memAvailable_oid), HANDLER_CAN_RONLY)
     );
-    const oid storageUsed_oid[] = { 1, 3, 6, 1, 4, 1, 112233, 11 };
     netsnmp_register_scalar(
         netsnmp_create_handler_registration("storageUsed", handle_system_info, storageUsed_oid, OID_LENGTH(storageUsed_oid), HANDLER_CAN_RONLY)
     );
-    const oid storageAvailable_oid[] = { 1, 3, 6, 1, 4, 1, 112233, 12 };
     netsnmp_register_scalar(
         netsnmp_create_handler_registration("storageAvailable", handle_system_info, storageAvailable_oid, OID_LENGTH(storageAvailable_oid), HANDLER_CAN_RONLY)
     );
-    const oid timezone_oid[] = { 1, 3, 6, 1, 4, 1, 112233, 13 };
     netsnmp_register_scalar(
         netsnmp_create_handler_registration("timezone", handle_system_info, timezone_oid, OID_LENGTH(timezone_oid), HANDLER_CAN_RWRITE)
     );
-    const oid temperature_oid[] = { 1, 3, 6, 1, 4, 1, 112233, 14 };
     netsnmp_register_scalar(
         netsnmp_create_handler_registration("temperature", handle_system_info, temperature_oid, OID_LENGTH(temperature_oid), HANDLER_CAN_RONLY)
     );
-    const oid cpuUsage_oid[] = { 1, 3, 6, 1, 4, 1, 112233, 15 };
     netsnmp_register_scalar(
         netsnmp_create_handler_registration("cpuUsage", handle_system_info, cpuUsage_oid, OID_LENGTH(cpuUsage_oid), HANDLER_CAN_RONLY)
     );
-    const oid processorSpeed_oid[] = { 1, 3, 6, 1, 4, 1, 112233, 16 };
     netsnmp_register_scalar(
         netsnmp_create_handler_registration("processorSpeed", handle_system_info, processorSpeed_oid, OID_LENGTH(processorSpeed_oid), HANDLER_CAN_RONLY)
     );
-    const oid osInfo_oid[] = { 1, 3, 6, 1, 4, 1, 112233, 17 };
-     netsnmp_register_scalar(
+    netsnmp_register_scalar(
         netsnmp_create_handler_registration("osInfo", handle_system_info, osInfo_oid, OID_LENGTH(osInfo_oid), HANDLER_CAN_RONLY)
     );
-    const oid kernelVersion_oid[] = { 1, 3, 6, 1, 4, 1, 112233, 18 };
-     netsnmp_register_scalar(
+    netsnmp_register_scalar(
         netsnmp_create_handler_registration("kernelVersion", handle_system_info, kernelVersion_oid, OID_LENGTH(kernelVersion_oid), HANDLER_CAN_RONLY)
     );
-    const oid location_oid[] = { 1, 3, 6, 1, 4, 1, 112233, 19 };
-     netsnmp_register_scalar(
+    netsnmp_register_scalar(
         netsnmp_create_handler_registration("location", handle_system_info, location_oid, OID_LENGTH(location_oid), HANDLER_CAN_RONLY)
     );
 }
