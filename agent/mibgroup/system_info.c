@@ -124,7 +124,7 @@ int get_mem_info(const char* key, long* value) {
         long val;
         if (sscanf(line, "%*s %ld", &val) == 1) {
             if (strstr(line, key) == line) {
-                *value = val * 1024;
+                *value = val * 1024; // Convert kB to bytes
                 fclose(f);
                 return 0;
             }
@@ -133,27 +133,39 @@ int get_mem_info(const char* key, long* value) {
     fclose(f);
     return -1;
 }
+
+// Return memory used in GB
 int get_mem_used(void) {
     long total = 0, free = 0, buffers = 0, cached = 0;
     if (get_mem_info("MemTotal:", &total) == 0 &&
         get_mem_info("MemFree:", &free) == 0 &&
         get_mem_info("Buffers:", &buffers) == 0 &&
         get_mem_info("Cached:", &cached) == 0) {
-        return (int)(total - free - buffers - cached);
+        
+        long long used_bytes = total - free - buffers - cached;
+        return (int)(used_bytes / (1024LL * 1024LL * 1024LL)); // Convert to GB
     }
     return -1;
 }
+
+// Return memory available in GB
 int get_mem_available(void) {
     long available = 0;
     long total = 0, free = 0, buffers = 0, cached = 0;
+    
+    // Try to get MemAvailable first (more accurate on newer kernels)
     if (get_mem_info("MemAvailable:", &available) == 0) {
-        return (int)available;
+        return (int)(available / (1024LL * 1024LL * 1024LL)); // Convert to GB
     }
-     if (get_mem_info("MemTotal:", &total) == 0 &&
+    
+    // Fallback to calculating available memory
+    if (get_mem_info("MemTotal:", &total) == 0 &&
         get_mem_info("MemFree:", &free) == 0 &&
         get_mem_info("Buffers:", &buffers) == 0 &&
         get_mem_info("Cached:", &cached) == 0) {
-        return (int)(free + buffers + cached);
+        
+        long long available_bytes = free + buffers + cached;
+        return (int)(available_bytes / (1024LL * 1024LL * 1024LL)); // Convert to GB
     }
     return -1;
 }
@@ -170,14 +182,16 @@ int get_storage_info(const char* path, long long* total, long long* free) {
 int get_storage_used(void) {
     long long total = 0, free = 0;
     if (get_storage_info("/", &total, &free) == 0) {
-        return (int)(total - free);
+        long long used_bytes = total - free;
+        return (int)(used_bytes / (1024 * 1024 * 1024)); // Convert to GB
     }
     return -1;
 }
+
 int get_storage_available(void) {
     long long total = 0, free = 0;
     if (get_storage_info("/", &total, &free) == 0) {
-        return (int)free;
+        return (int)(free / (1024 * 1024 * 1024)); // Convert to GB
     }
     return -1;
 }
