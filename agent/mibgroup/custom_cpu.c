@@ -12,12 +12,13 @@ int handle_totalCPUs(netsnmp_mib_handler *handler,
                      netsnmp_agent_request_info   *reqinfo,
                      netsnmp_request_info         *requests) {
     switch (reqinfo->mode) {
-        case MODE_GET:
+        case MODE_GET: {
             long cpu_count = sysconf(_SC_NPROCESSORS_ONLN);
             snmp_set_var_typed_value(requests->requestvb, ASN_INTEGER,
                                      (u_char *)&cpu_count,
                                      sizeof(cpu_count));
             break;
+        }
         default:
             return SNMP_ERR_GENERR;
     }
