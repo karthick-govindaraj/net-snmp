@@ -1,19 +1,25 @@
 #ifndef HOSTNAME_H
 #define HOSTNAME_H
 
-
 /**
- * Initializes the custom hostname scalar OID handler.
- * This function must be called during agent initialization.
+ * Get the current system hostname
+ * @return Pointer to hostname string, NULL on error
  */
 char* get_system_hostname(void);
-void init_hostname(void);
 
 /**
- * Optional: Declare get_system_hostname if it's a custom function.
- * If you are using a system-provided function, you can omit this.
+ * Set the system hostname
+ * @param new_hostname New hostname to set
+ * @return 0 on success, negative value on error:
+ *         -1: Invalid hostname (NULL, empty, or too long)
+ *         -2: Invalid characters in hostname
+ *         -3: Failed to set hostname (permission issue)
  */
-// const char* get_system_hostname(void);
+int set_system_hostname(const char* new_hostname);
+
+/**
+ * Initialize the hostname MIB module
+ */
+void init_hostname(void);
 
 #endif /* HOSTNAME_H */
-
