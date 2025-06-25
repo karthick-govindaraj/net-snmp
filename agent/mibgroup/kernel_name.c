@@ -33,8 +33,9 @@ int kernel_name_handler(netsnmp_mib_handler *handler,
 }
 
 void init_kernel_name(void) {
-    printf("Init KERNEL_NAME\n");
     const oid kernel_name_oid[] = { 1, 3, 6, 1, 4, 1, 112233, 3 };
+
+    printf("Init KERNEL_NAME\n");
 
     netsnmp_register_scalar(
         netsnmp_create_handler_registration("kernelNameOID",
@@ -42,4 +43,4 @@ void init_kernel_name(void) {
                                             kernel_name_oid,
                                             OID_LENGTH(kernel_name_oid),
                                             HANDLER_CAN_RONLY));
-} 
+}
