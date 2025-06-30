@@ -1,0 +1,57 @@
+REBOOT-MIB DEFINITIONS ::= BEGIN
+
+IMPORTS
+    OBJECT-TYPE, MODULE-IDENTITY, Integer32
+        FROM SNMPv2-SMI
+    TEXTUAL-CONVENTION
+        FROM SNMPv2-TC;
+
+-- Define the MIB module
+rebootMIB MODULE-IDENTITY
+    LAST-UPDATED "202506300000Z"
+    ORGANIZATION "My Company"
+    CONTACT-INFO "you@example.com"
+    DESCRIPTION "A custom MIB for controlling system reboot operations"
+    REVISION "202506300000Z" 
+    DESCRIPTION "Initial version supporting reboot control operations"
+    ::= { 1 3 6 1 4 1 112233 20 }
+
+-- Define textual convention for reboot actions
+RebootAction ::= TEXTUAL-CONVENTION
+    STATUS      current
+    DESCRIPTION
+        "Defines the reboot action:
+         immediate(1) - Reboot the system immediately"
+    SYNTAX      Integer32 {
+                    immediate(1)
+                }
+
+-- Define the reboot control object  
+systemReboot OBJECT-TYPE
+    SYNTAX      RebootAction
+    MAX-ACCESS  read-write
+    STATUS      current
+    DESCRIPTION 
+        "Control object for system reboot operations.
+         
+         When read, this object returns:
+         - 0 if no reboot is pending
+         - 1 if a reboot operation is pending/in progress
+         
+         When written, this object accepts the following value:
+         
+         immediate(1): Initiates an immediate system reboot with no delay.
+                      The system will reboot as soon as possible.
+                      WARNING: This may cause data loss if applications
+                      are not properly shut down.
+         
+         SECURITY WARNING: 
+         This operation requires administrative privileges and will
+         restart the entire system. Ensure proper access controls
+         are in place to prevent unauthorized reboot operations.
+         
+         Example:
+         - snmpset -v2c -c private host 1.3.6.1.4.1.112233.20 i 1  (immediate reboot)"
+    ::= { rebootMIB 1 }
+
+END
